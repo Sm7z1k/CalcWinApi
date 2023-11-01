@@ -3,48 +3,24 @@
 #include <Windows.h>
 #include <Math.h>
 #include <stdio.h>
-
-#define IDC_BUTTON_ONE		1001
-#define IDC_BUTTON_TWO		1002
-#define IDC_BUTTON_THREE	1003
-#define IDC_BUTTON_FOUR		1004
-#define IDC_BUTTON_FIVE		1005
-#define IDC_BUTTON_SIX		1006
-#define IDC_BUTTON_SEVEN	1007
-#define IDC_BUTTON_EIGHT	1008
-#define IDC_BUTTON_NINE		1009
-#define IDC_BUTTON_TEN		1010
-#define IDC_BUTTON_PLUS		1011
-#define IDC_BUTTON_MINUS	1012
-#define IDC_BUTTON_MULTIPLY 1013
-#define IDC_BUTTON_DIVIDED	1014
-#define IDC_BUTTON_EQUALS	1015
-#define IDC_EDIT_DIGITS		1016
-#define IDC_BUTTON_CHANGE	1017
-#define IDC_BUTTON_DOT		1018
-#define IDC_BUTTON_ZERO		1019
-#define IDC_BUTTON_STEP		1020
-#define IDC_BUTTON_KOREN	1021
-#define IDC_BUTTON_ONEDIVDG	1022
-#define IDC_BUTTON_PERCENT	1023
-#define IDC_BUTTON_DELONEDG	1024
-#define IDC_BUTTON_DELETE	1025
-
-#define DIGITSCOUNT			18
-#define DEFAULTWINDOWWEIGHT	515
-#define DEFAULTWINDOWHEIGHT	690
-#define DEFAULTBUTTONWEIGHT	125
-#define DEFAULTBUTTONHEIGHT	75
+#include "options.h"
 
 BOOL operation = false;
+INT operationX2 = 0;
 BOOL isDot = false;
 FLOAT digitA = 0.0f;
 FLOAT digitB = 0.0f;
 CHAR cOperation;
+CHAR cOperationX2;
+CONST CHAR className[] = "Calc";
 
 LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
-
-CONST CHAR className[] = "Calc";
+VOID CreateButton(HWND hwnd, INT but, INT x, INT y, CHAR* ch);
+VOID DigitButton(HWND hwnd, INT digit, LPARAM dgt);
+FLOAT Calculate(FLOAT a, FLOAT b);
+VOID ProverkaNaNull(HWND hwnd);
+VOID OperationButtons(CHAR ch);
+VOID Equals(HWND hwnd);
 
 INT WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR lpCmdLine, INT nCmdShow)
 {
@@ -130,7 +106,7 @@ VOID DigitButton(HWND hwnd, INT digit, LPARAM dgt)
 	}
 
 	if (digits[0] == '0' && digits[1] != '.')
-	{		
+	{
 		SendMessage(hEdit, WM_SETTEXT, 0, dgt);
 	}
 	else if (digits[0] != '0' && i + 1 < DIGITSCOUNT && operation == false || digits[1] == '.' && operation == false)
@@ -138,31 +114,36 @@ VOID DigitButton(HWND hwnd, INT digit, LPARAM dgt)
 		digits[i] = digit;
 		SendMessage(hEdit, WM_SETTEXT, 0, (LPARAM)digits);
 	}
-	else if(operation == true)
+	else if (operation == true)
 	{
-		digitA = atof(digits);		
+		digitA = atof(digits);
 		SendMessage(hEdit, WM_SETTEXT, 0, dgt);
 		operation = false;
 	}
+
+	if (operationX2 == 1)
+	{
+		cOperationX2 = cOperation;
+	}
 }
 
-FLOAT Calculate(FLOAT a, FLOAT b)
+FLOAT Calculate(FLOAT a, FLOAT b, CHAR ch)
 {
 	FLOAT Result = 0;
-	switch (cOperation)
+	switch (ch)
 	{
 	case '+':
-		Result = a + b;		
-		break;	
+		Result = a + b;
+		break;
 	case '-':
-		Result = a - b;		
+		Result = a - b;
 		break;
 	case '*':
-		Result = a * b;		
+		Result = a * b;
 		break;
 	case '/':
-		Result = a / b;		
-		break;	
+		Result = a / b;
+		break;
 	}
 	return Result;
 }
@@ -178,12 +159,56 @@ VOID ProverkaNaNull(HWND hwnd)
 		digits[i] = '\0';
 		i--;
 	}
-	if(digits[i] == '.') digits[i] = '\0';
+	if (digits[i] == '.') digits[i] = '\0';
 	SendMessage(hEdit, WM_SETTEXT, 0, (LPARAM)digits);
 }
 
+VOID OperationButtons(CHAR ch, HWND hwnd)
+{
+	operation = true;
+	cOperation = ch;
+	isDot = false;
+	operationX2++;
+	if (operationX2 == 2)
+	{
+		if (digitA != 0)
+		{
+			HWND hEdit = GetDlgItem(hwnd, IDC_EDIT_DIGITS);
+			CHAR digits[DIGITSCOUNT]{};
+			CHAR rez[DIGITSCOUNT]{};
+			SendMessage(hEdit, WM_GETTEXT, DIGITSCOUNT + 1, (LPARAM)digits);
+			digitB = atof(digits);
+			digitA = Calculate(digitA, digitB, cOperationX2);
+			digitB = 0;
+			sprintf(rez, "%f", digitA);
+			digitA = 0;
+			SendMessage(hEdit, WM_SETTEXT, 0, (LPARAM)rez);
+			ProverkaNaNull(hwnd);
+		}
+		operationX2 = 1;
+	}
+}
+
+VOID Equals(HWND hwnd)
+{
+	if (digitA != 0)
+	{
+		HWND hEdit = GetDlgItem(hwnd, IDC_EDIT_DIGITS);
+		CHAR digits[DIGITSCOUNT]{};
+		CHAR rez[DIGITSCOUNT]{};
+		SendMessage(hEdit, WM_GETTEXT, DIGITSCOUNT + 1, (LPARAM)digits);
+		digitB = atof(digits);
+		digitA = Calculate(digitA, digitB, cOperation);
+		digitB = 0;
+		sprintf(rez, "%f", digitA);
+		digitA = 0;
+		SendMessage(hEdit, WM_SETTEXT, 0, (LPARAM)rez);
+		ProverkaNaNull(hwnd);
+	}
+}
+
 LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
-{	
+{
 	switch (uMsg)
 	{
 	case WM_CREATE:
@@ -242,7 +267,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			SetTextColor((HDC)wParam, RGB(255, 255, 255));
 		}
 	}
-	break;	
+	break;
 	case WM_COMMAND:
 	{
 		switch (LOWORD(wParam))
@@ -312,7 +337,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			CHAR digits[DIGITSCOUNT]{};
 			SendMessage(hEdit, WM_GETTEXT, DIGITSCOUNT + 1, (LPARAM)digits);
 
-			if(digits[1] == '\0') SendMessage(hEdit, WM_SETTEXT, 0, (LPARAM)"0");
+			if (digits[1] == '\0') SendMessage(hEdit, WM_SETTEXT, 0, (LPARAM)"0");
 			else
 			{
 				int i = 0;
@@ -328,30 +353,22 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 
 		case IDC_BUTTON_PLUS:
 		{
-			operation = true;
-			cOperation = '+';
-			isDot = false;
+			OperationButtons('+', hwnd);
 		}
 		break;
 		case IDC_BUTTON_MINUS:
 		{
-			operation = true;
-			cOperation = '-';
-			isDot = false;
+			OperationButtons('-', hwnd);
 		}
 		break;
 		case IDC_BUTTON_MULTIPLY:
 		{
-			operation = true;
-			cOperation = '*';
-			isDot = false;
+			OperationButtons('*', hwnd);
 		}
 		break;
 		case IDC_BUTTON_DIVIDED:
 		{
-			operation = true;
-			cOperation = '/';
-			isDot = false;
+			OperationButtons('/', hwnd);
 		}
 		break;
 		case IDC_BUTTON_KOREN:
@@ -359,7 +376,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			HWND hEdit = GetDlgItem(hwnd, IDC_EDIT_DIGITS);
 			CHAR digits[DIGITSCOUNT]{};
 			SendMessage(hEdit, WM_GETTEXT, DIGITSCOUNT + 1, (LPARAM)digits);
-			digitA = atof(digits);			
+			digitA = atof(digits);
 			CHAR rez[DIGITSCOUNT]{};
 			digitA = sqrt(digitA);
 			sprintf(rez, "%f", digitA);
@@ -401,7 +418,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			digitA = atof(digits);
 			CHAR rez[DIGITSCOUNT]{};
 			digitA = digitA / 100;
-			sprintf(rez, "%f", digitA);			
+			sprintf(rez, "%f", digitA);
 			SendMessage(hEdit, WM_SETTEXT, 0, (LPARAM)rez);
 			ProverkaNaNull(hwnd);
 		}
@@ -421,7 +438,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		break;
 		case IDC_BUTTON_DOT:
 		{
-			if(isDot == false)
+			if (isDot == false)
 			{
 				HWND hEdit = GetDlgItem(hwnd, IDC_EDIT_DIGITS);
 				CHAR digits[DIGITSCOUNT]{};
@@ -439,23 +456,11 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		break;
 		case IDC_BUTTON_EQUALS:
 		{
-			if(digitA != 0)
-			{
-				HWND hEdit = GetDlgItem(hwnd, IDC_EDIT_DIGITS);
-				CHAR digits[DIGITSCOUNT]{};
-				CHAR rez[DIGITSCOUNT]{};
-				SendMessage(hEdit, WM_GETTEXT, DIGITSCOUNT + 1, (LPARAM)digits);
-				digitB = atof(digits);
-				digitA = Calculate(digitA, digitB);
-				digitB = 0;
-				sprintf(rez, "%f", digitA);				
-				digitA = 0;				
-				SendMessage(hEdit, WM_SETTEXT, 0, (LPARAM)rez);
-				ProverkaNaNull(hwnd);
-			}
+			Equals(hwnd);
+			operationX2 = 0;
 		}
-		break;		
-		}	
+		break;
+		}
 	}
 	break;
 	case WM_DESTROY: PostQuitMessage(0); break;
