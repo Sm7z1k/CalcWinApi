@@ -56,7 +56,7 @@ INT WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR lpCmdLine, INT nC
 		NULL,
 		className,
 		className,
-		WS_OVERLAPPEDWINDOW,
+		WS_OVERLAPPEDWINDOW^WS_THICKFRAME^WS_MAXIMIZEBOX,
 		CW_USEDEFAULT, CW_USEDEFAULT,
 		(DEFAULTBUTTONWEIGHT * 4) + (BUTTONINTERVAL * 3) + 16, (DEFAULTBUTTONHEIGHT * 6) + (BUTTONINTERVAL * 5) + 240,
 		NULL,
@@ -172,21 +172,6 @@ FLOAT Calculate(FLOAT a, FLOAT b, CHAR ch)
 	return Result;
 }
 
-VOID ProverkaNaNull(HWND hwnd)
-{
-	HWND hEdit = GetDlgItem(hwnd, IDC_EDIT_DIGITS);
-	CHAR digits[DIGITSCOUNT]{};
-	SendMessage(hEdit, WM_GETTEXT, DIGITSCOUNT + 1, (LPARAM)digits);
-	int i = sizeof(digits) / sizeof(digits[0]) - 1;
-	while (digits[i] == '0' || digits[i] == '\0')
-	{
-		digits[i] = '\0';
-		i--;
-	}
-	if (digits[i] == '.') digits[i] = '\0';
-	SendMessage(hEdit, WM_SETTEXT, 0, (LPARAM)digits);
-}
-
 VOID OperationButtons(CHAR ch, HWND hwnd)
 {
 	operation = true;
@@ -202,12 +187,10 @@ VOID OperationButtons(CHAR ch, HWND hwnd)
 			CHAR rez[DIGITSCOUNT]{};
 			SendMessage(hEdit, WM_GETTEXT, DIGITSCOUNT + 1, (LPARAM)digits);
 			digitB = atof(digits);
-			digitA = Calculate(digitA, digitB, cOperationX2);
-			digitB = 0;
-			sprintf(rez, "%f", digitA);
+			digitA = Calculate(digitA, digitB, cOperationX2);			
+			sprintf(rez, "%g", digitA);			
 			digitA = 0;
-			SendMessage(hEdit, WM_SETTEXT, 0, (LPARAM)rez);
-			ProverkaNaNull(hwnd);
+			SendMessage(hEdit, WM_SETTEXT, 0, (LPARAM)rez);			
 		}
 		operationX2 = 1;
 	}
@@ -218,16 +201,14 @@ VOID Equals(HWND hwnd)
 	HWND hEdit = GetDlgItem(hwnd, IDC_EDIT_DIGITS);
 	if (digitA != 0)
 	{
-		CHAR digits[DIGITSCOUNT]{};
-		CHAR rez[DIGITSCOUNT]{};
+		CHAR digits[DIGITSCOUNT]{};		
+		CHAR rez[DIGITSCOUNT]{};		
 		SendMessage(hEdit, WM_GETTEXT, DIGITSCOUNT + 1, (LPARAM)digits);
 		digitB = atof(digits);
 		digitA = Calculate(digitA, digitB, cOperation);
-		digitB = 0;
-		sprintf(rez, "%f", digitA);
+		sprintf(rez, "%g", digitA);
 		digitA = 0;
-		SendMessage(hEdit, WM_SETTEXT, 0, (LPARAM)rez);
-		ProverkaNaNull(hwnd);
+		SendMessage(hEdit, WM_SETTEXT, 0, (LPARAM)rez);		
 	}	
 }
 
@@ -259,7 +240,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		SendMessage(hEditDigit, WM_SETFONT, (WPARAM)hFont, 0);
 		SendMessage(hEditDigit, WM_SETTEXT, 0, (LPARAM)"0");
 
-		CreateButton(hwnd);		
+		CreateButton(hwnd);			
 	}
 	break;
 	case WM_CTLCOLOREDIT:
@@ -280,10 +261,12 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 
 		SelectObject(Item->hDC, hfontButton);	
 
-		/*if (Item->itemState & ODS_SELECTED)
-			FillRect(Item->hDC, &Item->rcItem, (HBRUSH)GetStockObject(BLACK_BRUSH));
+		/*HBRUSH hBrushPush = CreateSolidBrush(RGB(20, 20, 20));
+		HBRUSH hBrushDef = CreateSolidBrush(RGB(32, 32, 32));
+		if (Item->itemState & ODS_SELECTED)
+			FillRect(Item->hDC, &Item->rcItem, hBrushPush);
 		else
-			FillRect(Item->hDC, &Item->rcItem, (HBRUSH)GetStockObject(GRAY_BRUSH));*/
+			FillRect(Item->hDC, &Item->rcItem, hBrushDef);*/
 
 		int len = GetWindowTextLength(Item->hwndItem);
 		char* buf = new char[len + 1];
@@ -464,9 +447,8 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			digitA = atof(digits);
 			CHAR rez[DIGITSCOUNT]{};
 			digitA = sqrt(digitA);
-			sprintf(rez, "%f", digitA);
-			SendMessage(hEdit, WM_SETTEXT, 0, (LPARAM)rez);
-			ProverkaNaNull(hwnd);
+			sprintf(rez, "%g", digitA);
+			SendMessage(hEdit, WM_SETTEXT, 0, (LPARAM)rez);			
 		}
 		break;
 		case IDC_BUTTON_STEP:
@@ -477,9 +459,8 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			digitA = atof(digits);
 			CHAR rez[DIGITSCOUNT]{};
 			digitA = digitA * digitA;
-			sprintf(rez, "%f", digitA);
-			SendMessage(hEdit, WM_SETTEXT, 0, (LPARAM)rez);
-			ProverkaNaNull(hwnd);
+			sprintf(rez, "%g", digitA);
+			SendMessage(hEdit, WM_SETTEXT, 0, (LPARAM)rez);			
 		}
 		break;
 		case IDC_BUTTON_ONEDIVDG:
@@ -490,9 +471,8 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			digitA = atof(digits);
 			CHAR rez[DIGITSCOUNT]{};
 			digitA = 1 / digitA;
-			sprintf(rez, "%f", digitA);
-			SendMessage(hEdit, WM_SETTEXT, 0, (LPARAM)rez);
-			ProverkaNaNull(hwnd);
+			sprintf(rez, "%g", digitA);
+			SendMessage(hEdit, WM_SETTEXT, 0, (LPARAM)rez);			
 		}
 		break;
 		case IDC_BUTTON_PERCENT:
@@ -503,9 +483,8 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			digitA = atof(digits);
 			CHAR rez[DIGITSCOUNT]{};
 			digitA = digitA / 100;
-			sprintf(rez, "%f", digitA);
-			SendMessage(hEdit, WM_SETTEXT, 0, (LPARAM)rez);
-			ProverkaNaNull(hwnd);
+			sprintf(rez, "%g", digitA);
+			SendMessage(hEdit, WM_SETTEXT, 0, (LPARAM)rez);			
 		}
 		break;
 		case IDC_BUTTON_CHANGE:
@@ -516,9 +495,8 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			digitA = atof(digits);
 			CHAR rez[DIGITSCOUNT]{};
 			digitA = digitA * -1;
-			sprintf(rez, "%f", digitA);
-			SendMessage(hEdit, WM_SETTEXT, 0, (LPARAM)rez);
-			ProverkaNaNull(hwnd);
+			sprintf(rez, "%g", digitA);
+			SendMessage(hEdit, WM_SETTEXT, 0, (LPARAM)rez);	
 		}
 		break;
 		case IDC_BUTTON_DOT:
@@ -554,6 +532,42 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 				SendMessage(hEdit, WM_SETTEXT, 0, (LPARAM)":(");
 		}
 		break;
+		}
+	}
+	break;
+	case WM_KEYDOWN:
+	{
+		if(GetKeyState(VK_SHIFT) < 0)
+		{
+			if(wParam == 0x38) SendMessage(hwnd, WM_COMMAND, IDC_BUTTON_MULTIPLY, 0);
+		}
+		else if(LOWORD(wParam) >= 0x37 && LOWORD(wParam) <= 0x39)
+		{
+			SendMessage(hwnd, WM_COMMAND, LOWORD(wParam) - 0x37 + IDC_BUTTON_SEVEN, 0);
+		}	
+		else if (LOWORD(wParam) >= 0x34 && LOWORD(wParam) <= 0x36)
+		{
+			SendMessage(hwnd, WM_COMMAND, LOWORD(wParam) - 0x34 + IDC_BUTTON_FOUR, 0);
+		}
+		else if (LOWORD(wParam) >= 0x31 && LOWORD(wParam) <= 0x33)
+		{
+			SendMessage(hwnd, WM_COMMAND, LOWORD(wParam) - 0x31 + IDC_BUTTON_ONE, 0);
+		}
+		else if (LOWORD(wParam) == 0x30)
+		{
+			SendMessage(hwnd, WM_COMMAND, LOWORD(wParam) - 0x30 + IDC_BUTTON_ZERO, 0);
+		}
+		switch(LOWORD(wParam))
+		{
+		case VK_OEM_PLUS: SendMessage(hwnd, WM_COMMAND, IDC_BUTTON_PLUS, 0); break;
+		case VK_OEM_MINUS: SendMessage(hwnd, WM_COMMAND, IDC_BUTTON_MINUS, 0); break;		
+		case VK_MULTIPLY: SendMessage(hwnd, WM_COMMAND, IDC_BUTTON_MULTIPLY, 0); break;
+		case VK_OEM_2:
+		case VK_DIVIDE: SendMessage(hwnd, WM_COMMAND, IDC_BUTTON_DIVIDED, 0); break;
+		case VK_OEM_PERIOD: SendMessage(hwnd, WM_COMMAND, IDC_BUTTON_DOT, 0); break;
+		case VK_RETURN: SendMessage(hwnd, WM_COMMAND, IDC_BUTTON_EQUALS, 0); break;
+		case VK_ESCAPE: SendMessage(hwnd, WM_COMMAND, IDC_BUTTON_DELETE, 0); break;
+		case VK_BACK: SendMessage(hwnd, WM_COMMAND, IDC_BUTTON_DELONEDG, 0); break;
 		}
 	}
 	break;
