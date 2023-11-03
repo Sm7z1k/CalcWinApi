@@ -8,11 +8,18 @@
 BOOL operation = false;
 INT operationX2 = 0;
 BOOL isDot = false;
+BOOL isMinus = false;
 FLOAT digitA = 0.0f;
 FLOAT digitB = 0.0f;
 CHAR cOperation;
 CHAR cOperationX2;
 CONST CHAR className[] = "Calc";
+LPCSTR symbols[] =
+{
+	"%", "CE", "C", "<x|", "1/x", "x^2", "Vx", "/" ,
+	"7", "8", "9", "x","4","5","6","-", "1",
+	"2", "3", "+", "+/-", "0", ".", "=",
+};
 
 LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 VOID CreateButton(HWND hwnd, INT but, INT x, INT y, CHAR* ch);
@@ -35,7 +42,7 @@ INT WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR lpCmdLine, INT nC
 	wc.hIcon = (HICON)LoadImage(hInst, "Icons\\calc.ico", IMAGE_ICON, LR_DEFAULTSIZE, LR_DEFAULTSIZE, LR_LOADFROMFILE);
 	wc.hIconSm = (HICON)LoadImage(hInst, "Icons\\calc.ico", IMAGE_ICON, LR_DEFAULTSIZE, LR_DEFAULTSIZE, LR_LOADFROMFILE);;
 	wc.hCursor = 0;
-	wc.hbrBackground = (HBRUSH)GetStockObject(DKGRAY_BRUSH);
+	wc.hbrBackground = 0;
 
 	wc.hInstance = hInst;
 	wc.lpfnWndProc = WndProc;
@@ -51,7 +58,7 @@ INT WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR lpCmdLine, INT nC
 		className,
 		WS_OVERLAPPEDWINDOW,
 		CW_USEDEFAULT, CW_USEDEFAULT,
-		DEFAULTWINDOWWEIGHT, DEFAULTWINDOWHEIGHT,
+		(DEFAULTBUTTONWEIGHT * 4) + (BUTTONINTERVAL * 3) + 16, (DEFAULTBUTTONHEIGHT * 6) + (BUTTONINTERVAL * 5) + 240,
 		NULL,
 		NULL,
 		hInst,
@@ -75,21 +82,34 @@ INT WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR lpCmdLine, INT nC
 	return msg.wParam;
 }
 
-VOID CreateButton(HWND hwnd, INT but, INT x, INT y, CHAR* ch)
+VOID CreateButton(HWND hwnd)
 {
-	HWND hButton = CreateWindowEx
-	(
-		NULL,
-		"Button",
-		ch,
-		WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
-		x, y,
-		DEFAULTBUTTONWEIGHT, DEFAULTBUTTONHEIGHT,
-		hwnd,
-		(HMENU)but,
-		GetModuleHandle(NULL),
-		NULL
-	);
+	INT k = 0;
+	INT but = 1001;
+	for (int i = 0; i < 6; i++)
+	{
+		for (int j = 0; j < 4; j++)
+		{
+			but += k;
+			HWND hButton = CreateWindowEx
+			(
+				NULL,
+				"Button",
+				(LPCSTR)symbols[k],
+				WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON | BS_OWNERDRAW,
+				(0 + j * (DEFAULTBUTTONWEIGHT + BUTTONINTERVAL)), (200 + i * (DEFAULTBUTTONHEIGHT + BUTTONINTERVAL)),
+				DEFAULTBUTTONWEIGHT, DEFAULTBUTTONHEIGHT,
+				hwnd,
+				(HMENU)but,
+				GetModuleHandle(NULL),
+				NULL
+			);
+			but = 1001;
+			k++;
+		}
+
+	}
+
 }
 
 VOID DigitButton(HWND hwnd, INT digit, LPARAM dgt)
@@ -119,6 +139,10 @@ VOID DigitButton(HWND hwnd, INT digit, LPARAM dgt)
 		digitA = atof(digits);
 		SendMessage(hEdit, WM_SETTEXT, 0, dgt);
 		operation = false;
+	}
+	else if (strcmp(digits, SMILEERROR) == true)
+	{
+		SendMessage(hEdit, WM_SETTEXT, 0, dgt);
 	}
 
 	if (operationX2 == 1)
@@ -171,9 +195,9 @@ VOID OperationButtons(CHAR ch, HWND hwnd)
 	operationX2++;
 	if (operationX2 == 2)
 	{
+		HWND hEdit = GetDlgItem(hwnd, IDC_EDIT_DIGITS);
 		if (digitA != 0)
 		{
-			HWND hEdit = GetDlgItem(hwnd, IDC_EDIT_DIGITS);
 			CHAR digits[DIGITSCOUNT]{};
 			CHAR rez[DIGITSCOUNT]{};
 			SendMessage(hEdit, WM_GETTEXT, DIGITSCOUNT + 1, (LPARAM)digits);
@@ -191,9 +215,9 @@ VOID OperationButtons(CHAR ch, HWND hwnd)
 
 VOID Equals(HWND hwnd)
 {
+	HWND hEdit = GetDlgItem(hwnd, IDC_EDIT_DIGITS);
 	if (digitA != 0)
 	{
-		HWND hEdit = GetDlgItem(hwnd, IDC_EDIT_DIGITS);
 		CHAR digits[DIGITSCOUNT]{};
 		CHAR rez[DIGITSCOUNT]{};
 		SendMessage(hEdit, WM_GETTEXT, DIGITSCOUNT + 1, (LPARAM)digits);
@@ -204,7 +228,7 @@ VOID Equals(HWND hwnd)
 		digitA = 0;
 		SendMessage(hEdit, WM_SETTEXT, 0, (LPARAM)rez);
 		ProverkaNaNull(hwnd);
-	}
+	}	
 }
 
 LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
@@ -213,6 +237,9 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	{
 	case WM_CREATE:
 	{
+		HBRUSH hBrush = CreateSolidBrush(RGB(32, 32, 32));
+		SetClassLong(hwnd, GCL_HBRBACKGROUND, (LONG)hBrush);
+
 		HWND hEditDigit = CreateWindowEx
 		(
 			NULL,
@@ -232,39 +259,90 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		SendMessage(hEditDigit, WM_SETFONT, (WPARAM)hFont, 0);
 		SendMessage(hEditDigit, WM_SETTEXT, 0, (LPARAM)"0");
 
-		CreateButton(hwnd, IDC_BUTTON_PERCENT, 125, 200, (CHAR*)"%");
-		CreateButton(hwnd, IDC_BUTTON_DELETE, 250, 200, (CHAR*)"C");
-		CreateButton(hwnd, IDC_BUTTON_DELONEDG, 375, 200, (CHAR*)"<x#");
-		CreateButton(hwnd, IDC_BUTTON_ONEDIVDG, 0, 275, (CHAR*)"1/x");
-		CreateButton(hwnd, IDC_BUTTON_STEP, 125, 275, (CHAR*)"x^2");
-		CreateButton(hwnd, IDC_BUTTON_KOREN, 250, 275, (CHAR*)"Vx");
-		CreateButton(hwnd, IDC_BUTTON_DIVIDED, 375, 275, (CHAR*)"/");
-
-		CreateButton(hwnd, IDC_BUTTON_MULTIPLY, 375, 350, (CHAR*)"x");
-		CreateButton(hwnd, IDC_BUTTON_MINUS, 375, 425, (CHAR*)"-");
-		CreateButton(hwnd, IDC_BUTTON_PLUS, 375, 500, (CHAR*)"+");
-		CreateButton(hwnd, IDC_BUTTON_EQUALS, 375, 575, (CHAR*)"=");
-
-		CreateButton(hwnd, IDC_BUTTON_SEVEN, 0, 350, (CHAR*)"7");
-		CreateButton(hwnd, IDC_BUTTON_EIGHT, 125, 350, (CHAR*)"8");
-		CreateButton(hwnd, IDC_BUTTON_NINE, 250, 350, (CHAR*)"9");
-		CreateButton(hwnd, IDC_BUTTON_FOUR, 0, 425, (CHAR*)"4");
-		CreateButton(hwnd, IDC_BUTTON_FIVE, 125, 425, (CHAR*)"5");
-		CreateButton(hwnd, IDC_BUTTON_SIX, 250, 425, (CHAR*)"6");
-		CreateButton(hwnd, IDC_BUTTON_ONE, 0, 500, (CHAR*)"1");
-		CreateButton(hwnd, IDC_BUTTON_TWO, 125, 500, (CHAR*)"2");
-		CreateButton(hwnd, IDC_BUTTON_THREE, 250, 500, (CHAR*)"3");
-		CreateButton(hwnd, IDC_BUTTON_CHANGE, 0, 575, (CHAR*)"+/-");
-		CreateButton(hwnd, IDC_BUTTON_ZERO, 125, 575, (CHAR*)"0");
-		CreateButton(hwnd, IDC_BUTTON_DOT, 250, 575, (CHAR*)".");
+		CreateButton(hwnd);		
 	}
 	break;
 	case WM_CTLCOLOREDIT:
 	{
 		if ((HWND)lParam == GetDlgItem(hwnd, IDC_EDIT_DIGITS))
 		{
-			SetBkColor((HDC)wParam, RGB(64, 64, 64));
+			SetBkColor((HDC)wParam, RGB(32, 32, 32));
 			SetTextColor((HDC)wParam, RGB(255, 255, 255));
+		}
+	}
+	break;
+	case WM_DRAWITEM:
+	{
+		static HFONT hfontButton = CreateFont(-25, 0, 0, 0, FW_NORMAL, 0, 0, 0, DEFAULT_CHARSET,
+			OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS,
+			DEFAULT_QUALITY, DEFAULT_PITCH, "Courier New");
+		LPDRAWITEMSTRUCT Item = (LPDRAWITEMSTRUCT)lParam;
+
+		SelectObject(Item->hDC, hfontButton);	
+
+		/*if (Item->itemState & ODS_SELECTED)
+			FillRect(Item->hDC, &Item->rcItem, (HBRUSH)GetStockObject(BLACK_BRUSH));
+		else
+			FillRect(Item->hDC, &Item->rcItem, (HBRUSH)GetStockObject(GRAY_BRUSH));*/
+
+		int len = GetWindowTextLength(Item->hwndItem);
+		char* buf = new char[len + 1];
+		GetWindowTextA(Item->hwndItem, buf, len + 1);
+		DrawTextA(Item->hDC, buf, len, &Item->rcItem, DT_SINGLELINE | DT_CENTER | DT_VCENTER);
+
+		return true;
+	}
+	break;
+	case WM_CTLCOLORBTN:
+	{
+		for (int i = 0; i < 8; i++)
+		{
+			if ((HWND)lParam == GetDlgItem(hwnd, IDC_BUTTON_PERCENT + i))
+			{
+				SetBkColor((HDC)wParam, RGB(50, 50, 50));
+				SetTextColor((HDC)wParam, RGB(255, 255, 255));
+				return (LRESULT)CreateSolidBrush(RGB(50, 50, 50));
+			}
+		}
+		if ((HWND)lParam == GetDlgItem(hwnd, IDC_BUTTON_MULTIPLY) ||
+			(HWND)lParam == GetDlgItem(hwnd, IDC_BUTTON_MINUS) ||
+			(HWND)lParam == GetDlgItem(hwnd, IDC_BUTTON_PLUS))
+		{
+			SetBkColor((HDC)wParam, RGB(50, 50, 50));
+			SetTextColor((HDC)wParam, RGB(255, 255, 255));
+			return (LRESULT)CreateSolidBrush(RGB(50, 50, 50));
+		}
+		if ((HWND)lParam == GetDlgItem(hwnd, IDC_BUTTON_EQUALS))
+		{
+			SetBkColor((HDC)wParam, RGB(139, 231, 236));			
+			return (LRESULT)CreateSolidBrush(RGB(139, 231, 236));
+		}
+		for(int i = 0; i < 3; i++)
+		{
+			if ((HWND)lParam == GetDlgItem(hwnd, IDC_BUTTON_SEVEN + i))
+			{
+				SetBkColor((HDC)wParam, RGB(59, 59, 59));
+				SetTextColor((HDC)wParam, RGB(255, 255, 255));
+				return (LRESULT)CreateSolidBrush(RGB(59, 59, 59));
+			}
+			if ((HWND)lParam == GetDlgItem(hwnd, IDC_BUTTON_FOUR + i))
+			{
+				SetBkColor((HDC)wParam, RGB(59, 59, 59));
+				SetTextColor((HDC)wParam, RGB(255, 255, 255));
+				return (LRESULT)CreateSolidBrush(RGB(59, 59, 59));
+			}
+			if ((HWND)lParam == GetDlgItem(hwnd, IDC_BUTTON_ONE + i))
+			{
+				SetBkColor((HDC)wParam, RGB(59, 59, 59));
+				SetTextColor((HDC)wParam, RGB(255, 255, 255));
+				return (LRESULT)CreateSolidBrush(RGB(59, 59, 59));
+			}
+			if ((HWND)lParam == GetDlgItem(hwnd, IDC_BUTTON_CHANGE + i))
+			{
+				SetBkColor((HDC)wParam, RGB(59, 59, 59));
+				SetTextColor((HDC)wParam, RGB(255, 255, 255));
+				return (LRESULT)CreateSolidBrush(RGB(59, 59, 59));
+			}
 		}
 	}
 	break;
@@ -325,6 +403,13 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		break;
 
 		case IDC_BUTTON_DELETE:
+		{
+			HWND hEdit = GetDlgItem(hwnd, IDC_EDIT_DIGITS);
+			SendMessage(hEdit, WM_SETTEXT, 0, (LPARAM)"0");
+			isDot = false;
+		}
+		break;
+		case IDC_BUTTON_CE:
 		{
 			HWND hEdit = GetDlgItem(hwnd, IDC_EDIT_DIGITS);
 			SendMessage(hEdit, WM_SETTEXT, 0, (LPARAM)"0");
@@ -458,6 +543,15 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		{
 			Equals(hwnd);
 			operationX2 = 0;
+		}
+		break;
+		case IDC_EDIT_DIGITS:
+		{
+			HWND hEdit = GetDlgItem(hwnd, IDC_EDIT_DIGITS);
+			CHAR digits[DIGITSCOUNT]{};
+			SendMessage(hEdit, WM_GETTEXT, DIGITSCOUNT + 1, (LPARAM)digits);
+			if (sizeof(digits) / sizeof(digits[0]) > DIGITSCOUNT)
+				SendMessage(hEdit, WM_SETTEXT, 0, (LPARAM)":(");
 		}
 		break;
 		}
