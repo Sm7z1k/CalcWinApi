@@ -331,6 +331,9 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	break;
 	case WM_COMMAND:
 	{
+		if (LOWORD(wParam) == IDC_EDIT_DIGITS && HIWORD(wParam) == EN_SETFOCUS)
+			SetFocus(hwnd);
+
 		switch (LOWORD(wParam))
 		{
 		case IDC_BUTTON_ONE:
